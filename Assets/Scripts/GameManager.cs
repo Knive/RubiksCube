@@ -84,6 +84,9 @@ public class GameManager : MonoBehaviour
 			// Set cube dimension
 			PlayerSettings.CubeDimension = data.cubeDimension;
 
+			// Timer
+			this.time = data.time;
+
 			// Instantiate cube
 			InstantiateRubiksCube();
 
@@ -670,7 +673,7 @@ public class GameManager : MonoBehaviour
 		yesButton.onClick = new Button.ButtonClickedEvent();
 		yesButton.onClick.AddListener(() =>
 		{
-			SaveSystem.SaveMoves(savedMoves);
+			SaveSystem.SaveMoves(savedMoves, time);
 			confirmationModal.SetActive(false);
 		});
 	}

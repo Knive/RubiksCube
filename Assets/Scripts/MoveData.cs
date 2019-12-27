@@ -11,6 +11,7 @@ using UnityEngine;
 public class MoveData
 {
 	public int cubeDimension;
+	public float time;
 	public string[] axis;
 	public float[] angle;
 	public int[] index;
@@ -18,13 +19,15 @@ public class MoveData
 	/// <summary>
 	/// Convert queue of moves to MoveData
 	/// </summary>
-	/// <param name="moves"></param>
-	public MoveData(Queue<Move> moves)
+	/// <param name="moves">Saved moves</param>
+	/// <param name="time">Timer</param>
+	public MoveData(Queue<Move> moves, float time)
 	{
-		cubeDimension = PlayerSettings.CubeDimension;
-		axis = new string[moves.Count];
-		angle = new float[moves.Count];
-		index = new int[moves.Count];
+		this.cubeDimension = PlayerSettings.CubeDimension;
+		this.time = time;
+		this.axis = new string[moves.Count];
+		this.angle = new float[moves.Count];
+		this.index = new int[moves.Count];
 
 		int i = 0;
 

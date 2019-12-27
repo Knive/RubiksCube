@@ -13,13 +13,14 @@ public static class SaveSystem
 	/// Save moves into save file
 	/// </summary>
 	/// <param name="moves">Moves</param>
-	public static void SaveMoves(Queue<Move> moves)
+	/// <param name="time">Timer</param>
+	public static void SaveMoves(Queue<Move> moves, float time)
 	{
 		BinaryFormatter formatter = new BinaryFormatter();
 		string path = Application.persistentDataPath + "/rubiks_cube.dat";
 		FileStream stream = new FileStream(path, FileMode.Create);
 
-		MoveData data = new MoveData(moves);
+		MoveData data = new MoveData(moves, time);
 
 		formatter.Serialize(stream, data);
 		stream.Close();
