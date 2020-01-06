@@ -28,7 +28,7 @@ public class GameManager : MonoBehaviour
 	/// <summary>
 	/// Solved cube state
 	/// </summary>
-	private string[,,] solvedCube;
+	private List<string[,,]> solvedCubes;
 	/// <summary>
 	/// Cube root
 	/// </summary>
@@ -96,9 +96,7 @@ public class GameManager : MonoBehaviour
 				isFaceRotating = true;
 
 				// Rotate
-				InitRotation(move.Axis, move.Index);
-				RotatePivot(move.Axis, move.Angle);
-				FinishRotation(move.Axis, move.Angle, move.Index, true);
+				SimpleRotateAlong(move.Axis, move.Angle, move.Index, true, false);
 			}
 
 			PlayerSettings.LoadGame = false;
@@ -133,9 +131,6 @@ public class GameManager : MonoBehaviour
 		cube = new Cubie[PlayerSettings.CubeDimension, PlayerSettings.CubeDimension, PlayerSettings.CubeDimension];
 		cubeRoot = new GameObject("Rubik's Cube");
 
-		// Solved cube state is the same as the initial cube state
-		solvedCube = new string[PlayerSettings.CubeDimension, PlayerSettings.CubeDimension, PlayerSettings.CubeDimension];
-
 		float offset = PlayerSettings.CubeDimension / 2f - 0.5f;
 
 		for (int z = 0; z < PlayerSettings.CubeDimension; z++) {
@@ -144,13 +139,117 @@ public class GameManager : MonoBehaviour
 				{
 					// Instantiate and name each cubie
 					GameObject cubie = UnityEngine.Object.Instantiate(cubiePrefab, new Vector3(x - offset, y - offset, z - offset), Quaternion.identity, cubeRoot.transform);
-					cubie.name = z.ToString() + y.ToString() + x.ToString();
-					
+					cubie.name = x.ToString() + y.ToString() + z.ToString();
+
 					cube[x, y, z] = cubie.GetComponent<Cubie>();
-					solvedCube[x, y, z] = cubie.name;
 				}
 			}
 		}
+
+		// Determine every solved cube states
+		DetermineSolvedCubeStates();
+	}
+
+	/// <summary>
+	/// Determine the different solved cube states (init state with different rotations should be 6 (cube faces count) times 4 (rotations count along an axis))
+	/// </summary>
+	private void DetermineSolvedCubeStates()
+	{
+		// Init
+		solvedCubes = new List<string[,,]>();
+
+		// Every 90 angle (X axis)
+		for (int angleX = 0; angleX < 4; angleX++) {
+			// For every cubie in a row
+			for (int i = 0; i < PlayerSettings.CubeDimension; i++)
+			{
+				// Rotate without storing any move or checking if game was won
+				SimpleRotateAlong(RotationAxis.X, 90, i, true, false);
+			}
+
+			// Add solved cube state
+			solvedCubes.Add(GetCubeState());
+
+			// Every 90 angle (Y axis)
+			for (int angleY = 0; angleY < 4; angleY++) {
+
+				// For every cubie in a row
+				for (int j = 0; j < PlayerSettings.CubeDimension; j++)
+				{
+					// Rotate without storing any move or checking if game was won
+					SimpleRotateAlong(RotationAxis.Y, 90, j, true, false);
+				}
+
+				// Add solved cube state
+				solvedCubes.Add(GetCubeState());
+			}
+
+			// Add solved cube state
+			solvedCubes.Add(GetCubeState());
+		}
+	}
+
+	/// <summary>
+	/// Get cube current state
+	/// </summary>
+	/// <returns>3d array containing cubie's names</returns>
+	private string[,,] GetCubeState()
+	{
+		string[,,] cubeState = new string[PlayerSettings.CubeDimension, PlayerSettings.CubeDimension, PlayerSettings.CubeDimension];
+
+		for (int z = 0; z < PlayerSettings.CubeDimension; z++) {
+			for (int y = 0; y < PlayerSettings.CubeDimension; y++) {
+				for (int x = 0; x < PlayerSettings.CubeDimension; x++)
+				{
+					// Cubie name
+					cubeState[x, y, z] = cube[x, y, z].name;
+				}
+			}
+		}
+
+		return cubeState;
+	}
+
+	/// <summary>
+	/// Logs cube state
+	/// </summary>
+	/// <param name="cube">Array of cubie's name</param>
+	public void LogCubeState(string[,,] cube)
+	{
+		string cubeString = "";
+
+		for (int z = 0; z < PlayerSettings.CubeDimension; z++) {
+			for (int y = 0; y < PlayerSettings.CubeDimension; y++) {
+				for (int x = 0; x < PlayerSettings.CubeDimension; x++)
+				{
+					// Cubie name
+					cubeString+= " " + cube[x, y, z];
+				}
+			}
+		}
+
+		Debug.Log(cubeString);
+	}
+
+	/// <summary>
+	/// Logs cube state
+	/// </summary>
+	/// <param name="cube">Array of cubie</param>
+	public void LogCubeState(Cubie[,,] cube)
+	{
+		string cubeString = "";
+
+		for (int z = 0; z < PlayerSettings.CubeDimension; z++) {
+			for (int y = 0; y < PlayerSettings.CubeDimension; y++) {
+				for (int x = 0; x < PlayerSettings.CubeDimension; x++)
+				{
+					// Cubie name
+					cubeString+= " " + cube[x, y, z].name;
+				}
+			}
+		}
+
+		Debug.Log(cubeString);
 	}
 
 	/// <summary>
@@ -270,20 +369,36 @@ public class GameManager : MonoBehaviour
 	/// <returns></returns>
 	private bool isCubeSolved()
 	{
-		// Cube is solved if each cubie position in the array is the same as the solved cube state
-		for (int z = 0; z < PlayerSettings.CubeDimension; z++) {
-			for (int y = 0; y < PlayerSettings.CubeDimension; y++) {
-				for (int x = 0; x < PlayerSettings.CubeDimension; x++)
+		bool cubeSolved = true;
+
+		foreach (string[,,] sCube in solvedCubes)
+		{
+			// New solved cube check, reset
+			cubeSolved = true;
+
+			// Cube is solved if each cubie position in the array is the same as the solved cube state
+			for (int z = 0; z < PlayerSettings.CubeDimension; z++)
+			{
+				for (int y = 0; y < PlayerSettings.CubeDimension; y++)
 				{
-					if (solvedCube[x, y, z] != cube[x, y, z].name)
+					for (int x = 0; x < PlayerSettings.CubeDimension; x++)
 					{
-						return false;
+						if (sCube[x, y, z] != cube[x, y, z].name)
+						{
+							cubeSolved = false;
+						}
 					}
 				}
 			}
+
+			// Bool is still true after one state was check ? then it's solved
+			if (cubeSolved)
+			{
+				return true;
+			}
 		}
 
-		return true;
+		return cubeSolved;
 	}
 
 	/// <summary>
@@ -349,7 +464,7 @@ public class GameManager : MonoBehaviour
 	/// <param name="axis">Rotation axis</param>
 	/// <param name="angle">Angle</param>
 	/// <param name="rotationIndex">Rotation index</param>
-	public void FinishRotation(RotationAxis axis, float angle, int rotationIndex, bool undo = false)
+	public void FinishRotation(RotationAxis axis, float angle, int rotationIndex, bool undo = false, bool gameWonCheck = true)
 	{
 		// Parent back the rotated cubies
 		for (int i = 0; i < PlayerSettings.CubeDimension; i++) {
@@ -377,12 +492,13 @@ public class GameManager : MonoBehaviour
 		isCurrentlyRotating = false;
 
 		// Check if Rubik's cube was solved
-		isGameWon = !isScrambling && isCubeSolved();
+		isGameWon = !isScrambling && gameWonCheck && isCubeSolved();
 
 		// Rubik's cube solved
 		if (isGameWon)
 		{
-			OnGameWon();
+			// OnGameWon();
+			Debug.Log("Solved");
 		}
 		else if (!isScrambling && angle != 0 && !undo)
 		{
@@ -406,6 +522,23 @@ public class GameManager : MonoBehaviour
 
 		isFaceRotating = false;
 	}
+
+	/// <summary>
+	/// Simple rotation of a certain angle along an axis
+	/// </summary>
+	/// <param name="axis">Axis</param>
+	/// <param name="angle">Angle</param>
+	/// <param name="rotationIndex">Rotation index</param>
+	/// <param name="undo">Whether the move should be stored (false) or not (true)</param>
+	/// <param name="gameWonCheck">Whether the win condition should be checked or not</param>
+	public void SimpleRotateAlong(RotationAxis axis, float angle, int rotationIndex, bool undo = false, bool gameWonCheck = true)
+	{
+		// Rotate
+		InitRotation(axis, rotationIndex);
+		RotatePivot(axis, angle);
+		FinishRotation(axis, angle, rotationIndex, undo, gameWonCheck);
+	}
+
 
 	/// <summary>
 	/// Undo move
