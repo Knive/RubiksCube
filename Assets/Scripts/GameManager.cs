@@ -497,8 +497,7 @@ public class GameManager : MonoBehaviour
 		// Rubik's cube solved
 		if (isGameWon)
 		{
-			// OnGameWon();
-			Debug.Log("Solved");
+			OnGameWon();
 		}
 		else if (!isScrambling && angle != 0 && !undo)
 		{
